@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Forecast</title>
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon.png">
+<style>
+:root{color-scheme:light;--ink:#142b26;--muted:#526660;--line:#dce5de;--green:#087659;--paper:#f3f6f1;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);font:16px system-ui,sans-serif;color:var(--ink)}main{max-width:1120px;margin:auto;padding:36px 24px 56px}header{margin:0 0 26px}h1{font-size:clamp(2.5rem,7vw,4rem);letter-spacing:-.065em;line-height:1;margin:0 0 10px}h2{font-size:1.13rem;margin:0 0 16px}p{margin:0;color:var(--muted);line-height:1.5}.layout{display:grid;grid-template-columns:minmax(290px,.82fr) minmax(0,1.4fr);gap:20px;align-items:start}.panel{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:22px}.fields,.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wide{grid-column:1/-1}label{display:block;font-size:.84rem;font-weight:650}.field{display:flex;align-items:center;gap:6px;border:1px solid #bbcfc3;border-radius:9px;padding:0 11px;margin-top:5px;color:var(--muted);background:#fbfdfb}.field:focus-within{outline:2px solid var(--green);outline-offset:2px}input,select{min-width:0;width:100%;font:inherit;color:var(--ink)}input{border:0;outline:none;background:transparent;padding:10px 0}select{border:1px solid #bbcfc3;border-radius:9px;background:#fbfdfb;padding:10px;margin-top:5px}small{display:block;margin-top:5px;color:var(--muted);font-size:.76rem;font-weight:400;line-height:1.45}details{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}summary{cursor:pointer;font-weight:650;margin-bottom:10px}.hero{background:#123e32;color:#fff;border-radius:14px;padding:22px}.hero p{color:#cce6d9}.hero output{display:block;font-size:clamp(2rem,6vw,4rem);font-weight:750;letter-spacing:-.06em;line-height:1.2;overflow-wrap:anywhere}.stats{margin:16px 0}.stat{padding:11px 12px;border-radius:10px;background:#edf6ef}.stat b{display:block;font-size:1.1rem}.stat span{color:var(--muted);font-size:.78rem}.chart{margin:20px 0 12px}canvas{display:block;width:100%;height:225px}.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted)}.legend span:before{content:'';display:inline-block;width:18px;margin-right:6px;border-top:3px solid var(--green);vertical-align:middle}.legend .baseline:before{border-top:2px dashed #657c75}table{width:100%;border-collapse:collapse;text-align:right;font-size:.85rem}th,td{padding:8px 4px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}.note{margin-top:15px;font-size:.8rem}.error{color:#a12525;margin-top:12px}.assumptions{margin-top:20px;font-size:.83rem}a{color:var(--green)}[hidden]{display:none!important}@media(max-width:760px){main{padding:24px 14px}.layout{grid-template-columns:1fr}.panel{padding:17px}} 
+button{border:1px solid #bbcfc3;border-radius:9px;padding:9px 12px;font:inherit;color:var(--ink);background:#edf6ef;cursor:pointer}button:disabled{opacity:.5;cursor:default}.saved{margin-bottom:16px}.saved-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.saved label+label{margin-top:8px}
+</style>
+</head>
+<body><main>
+<header><h1>Super Forecast</h1><p>Estimate your Australian super balance at retirement.</p></header>
+<section class="panel saved" aria-label="Saved forecasts">
+<h2>Saved forecasts</h2>
+<div class="fields">
+<label>Recall a forecast<select id="saved"><option value="">Choose a saved forecast</option></select></label>
+<label>Forecast name<span class="field"><input id="forecastName" maxlength="60" placeholder="e.g. Mine"></span></label>
+</div>
+<div class="saved-actions"><button id="saveForecast">Save as new</button><button id="overwriteForecast" disabled>Update saved forecast</button><button id="newForecast">Start a new forecast</button></div>
+<p class="note" id="saveStatus" role="status">Saved in this browser on this device.</p>
+</section>
+<div class="layout">
+<form class="panel" id="inputs" aria-label="Projection inputs">
+<h2>Your details</h2>
+<p class="note" style="margin:0 0 14px">Replace the example figures with your own. The example uses Russell iQ Super – Employer GoalTracker. Change the fee schedule if your plan differs.</p>
+<div class="fields">
+<label class="wide">Current super balance<span class="field">$<input name="balance" type="number" min="0" max="1000000000" step="any" value="100000" required></span></label>
+<label class="wide">Annual salary before tax<span class="field">$<input name="salary" type="number" min="0" max="100000000" step="any" value="90000" required></span><small>Enter eligible earnings before salary sacrifice and excluding employer super.</small></label>
+<label>Current age<span class="field"><input name="age" type="number" min="18" max="100" value="40" required></span></label>
+<label>Retirement age<span class="field"><input name="retirement" type="number" min="18" max="100" value="67" required></span></label>
+<label>Salary sacrifice<span class="field"><input name="sacrifice" type="number" min="0" max="100000000" step="any" value="0" required></span></label>
+<label>Sacrifice unit<select name="unit"><option value="annual">AUD per year</option><option value="fortnight">AUD per fortnight</option><option value="percent">% of salary</option></select></label>
+<label class="wide">Expected annual investment return<span class="field"><input name="growth" type="number" min="-100" max="30" step="any" value="6" required>%</span><small>Use a nominal return after investment fees and investment tax.</small></label>
+<label class="wide">Admin fee schedule<select name="feePlan">
+<option value="manual">Manual fees</option>
+<option value="goaltracker" selected>Russell iQ Super – Employer · GoalTracker</option>
+<option value="other">Russell iQ Super – Employer · Other option</option>
+</select><small id="feePlanNote"></small></label>
+<label class="wide"><span id="feeFieldCaption">Annual insurance &amp; other fees</span><span class="field">$<input name="fees" type="number" min="0" max="100000000" step="any" value="0" required></span></label>
+<label class="wide">Automatic admin fees · estimated first year<span class="field"><input id="autoFees" type="text" readonly></span></label>
+</div>
+<details><summary>More assumptions</summary><div class="fields">
+<label>Employer rate<span class="field"><input name="employer" type="number" min="0" max="100" step="any" value="12" required>%</span></label>
+<label>Annual pay growth<span class="field"><input name="payGrowth" type="number" min="-50" max="30" step="any" value="0" required>%</span></label>
+<label>Annual inflation<span class="field"><input name="inflation" type="number" min="0" max="30" step="any" value="2.5" required>%</span></label>
+</div></details>
+<p id="error" class="error" role="status" hidden></p>
+</form>
+<section class="panel" id="results" aria-label="Projection results">
+<div class="hero"><p id="headline"></p><output id="projected"></output><p id="real"></p></div>
+<div class="stats">
+<div class="stat"><span>Employer super · first year</span><b id="employerOut"></b></div>
+<div class="stat"><span>Salary sacrifice · first year</span><b id="sacrificeOut"></b></div>
+<div class="stat"><span>Into super after contributions tax · first year</span><b id="netOut"></b></div>
+<div class="stat"><span>Estimated account fees &amp; insurance · first year</span><b id="feesOut"></b></div>
+<div class="stat"><span>Extra at retirement from salary sacrifice</span><b id="extraOut"></b></div>
+</div>
+<div class="chart"><canvas id="chart" role="img" aria-label="Projected balance by age"></canvas></div>
+<div class="legend"><span>With your inputs</span><span class="baseline">Without salary sacrifice</span></div>
+<details><summary>Year-by-year balances</summary><table><thead><tr><th scope="col">Age</th><th scope="col">Projected</th><th scope="col">Without sacrifice</th></tr></thead><tbody id="rows"></tbody></table></details>
+</section>
+</div>
+<details class="assumptions"><summary>How the estimate works</summary>
+<p>Figures are in AUD. The forecast compounds the balance annually and adds contributions at year end after applying 15% contributions tax, then deducts admin fees and insurance. Employer super uses the entered rate on eligible pay before sacrifice. A fixed sacrifice stays the same each year. A percentage sacrifice grows with pay. Today’s dollars discount the final balance for inflation.</p>
+<p class="note">This is a scenario estimate. It excludes contribution caps and carry-forward amounts, the maximum employer contribution base, extra taxes such as Division 293, government payments and changes in future rules. The retirement age sets the projection horizon. Russell presets use the published iQ Super – Employer net account deductions, applied annually to the projected balance before fees. The model holds fee rates constant and excludes fee refunds, negotiated rates and changes to premiums. Investment fees and the Trustee Administration Fee belong in the net return assumption. <a href="https://russellinvestments.com/-/media/files/au/resources/pds/employer/ss_pds_sf_employer.pdf">Russell fee schedule</a>. <a href="https://softwaredevelopers.ato.gov.au/PaydaySuper">ATO employer super rate</a> · <a href="https://www.ato.gov.au/api/public/content/0-42064e26-5e71-4fce-8ca5-a244fc3c6d69">ATO contributions tax</a></p>
+</details>
+</main>
+<script>
+const form = document.getElementById('inputs');
+const byId = id => document.getElementById(id);
+const money = new Intl.NumberFormat('en-AU', {style:'currency', currency:'AUD', maximumFractionDigits:0});
+const compact = new Intl.NumberFormat('en-AU', {notation:'compact', maximumFractionDigits:1});
+const format = value => money.format(value);
+let points = [];
+
+const feeRates = {goaltracker: 0.001275, other: 0.001615};
+function accountFees(input, balance) {
+  const rate = feeRates[input.feePlan];
+  return input.fees + (rate ? 51 + Math.min(balance, 1000000) * rate : 0);
+}
+
+function forecast(input) {
+  const years = input.retirement - input.age;
+  const salarySacrifice = pay => {
+    if (input.unit === 'percent') return pay * input.sacrifice / 100;
+    return input.sacrifice * (input.unit === 'fortnight' ? 26 : 1);
+  };
+  const firstEmployer = input.salary * input.employer / 100;
+  const firstSacrifice = salarySacrifice(input.salary);
+  const series = [{age:input.age, balance:input.balance, baseline:input.balance}];
+  let pay = input.salary;
+  let firstFees = 0;
+  const factor = 1 + input.growth / 100;
+  for (let year = 1; year <= years; year++) {
+    const previous = series.at(-1);
+    const employer = pay * input.employer / 100;
+    const beforeFees = previous.balance * factor + (employer + salarySacrifice(pay)) * .85;
+    const baselineBeforeFees = previous.baseline * factor + employer * .85;
+    const fees = accountFees(input, beforeFees);
+    if (year === 1) firstFees = Math.min(beforeFees, fees);
+    series.push({
+      age:input.age + year,
+      balance:Math.max(0, beforeFees - fees),
+      baseline:Math.max(0, baselineBeforeFees - accountFees(input, baselineBeforeFees)),
+    });
+    pay *= 1 + input.payGrowth / 100;
+  }
+  const end = series.at(-1);
+  return {series, end, firstEmployer, firstSacrifice, firstFees, years,
+    real:end.balance / (1 + input.inflation / 100) ** years};
+}
+
+function draw() {
+  const canvas = byId('chart');
+  if (!points.length || !canvas.clientWidth) return;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  const left = 63, right = width - 13, top = 16, bottom = height - 28;
+  const max = Math.max(100, ...points.map(row => row.balance));
+  const x = i => left + (right - left) * i / (points.length - 1);
+  const y = amount => bottom - amount / max * (bottom - top);
+  ctx.font = '11px system-ui';
+  ctx.fillStyle = '#526660';
+  for (let i = 0; i <= 4; i++) {
+    const value = max * i / 4;
+    ctx.strokeStyle = '#dce5de';
+    ctx.beginPath(); ctx.moveTo(left, y(value)); ctx.lineTo(right, y(value)); ctx.stroke();
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + compact.format(value), left - 6, y(value) + 3);
+  }
+  ctx.textAlign = 'center';
+  const labels = Math.min(points.length - 1, 4);
+  for (let i = 0; i <= labels; i++) {
+    const index = Math.round(i * (points.length - 1) / labels);
+    ctx.fillText(points[index].age, x(index), bottom + 18);
+  }
+  for (const [key, color, dash] of [['balance','#087659',[]],['baseline','#657c75',[5,5]]]) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = key === 'balance' ? 3 : 2;
+    ctx.setLineDash(dash);
+    points.forEach((row, i) => {
+      if (i === 0) ctx.moveTo(x(i), y(row[key]));
+      else ctx.lineTo(x(i), y(row[key]));
+    });
+    ctx.stroke();
+  }
+}
+
+function update() {
+  const input = Object.fromEntries(Array.from(form.elements)
+    .filter(field => field.name)
+    .map(field => [field.name, field.type === 'number' ? field.valueAsNumber : field.value]));
+  byId('feeFieldCaption').textContent = feeRates[input.feePlan] ? 'Annual insurance & other fees' : 'Annual admin fees & insurance';
+  byId('autoFees').value = '';
+  byId('feePlanNote').textContent = feeRates[input.feePlan]
+    ? '$51 per year plus ' + (input.feePlan === 'goaltracker' ? '0.1275%' : '0.1615%') + ' on the first $1 million. Enter insurance and any other direct fees below. Check your plan booklet for employer-specific rates.'
+    : 'Enter the annual amount deducted directly from your account.';
+  const message = !form.checkValidity() ? 'Enter a valid number in each field, including any expanded assumptions.'
+    : input.retirement <= input.age ? 'Retirement age must be above your current age.'
+    : (input.unit === 'percent' ? input.sacrifice > 100 : input.sacrifice * (input.unit === 'fortnight' ? 26 : 1) > Math.min(input.salary, input.salary * (1 + input.payGrowth / 100) ** (input.retirement - input.age - 1)))
+      ? 'Salary sacrifice must fit within your gross salary throughout the projection.' : '';
+  byId('error').textContent = message;
+  byId('error').hidden = !message;
+  byId('results').hidden = Boolean(message);
+  if (message) return;
+  const {series, end, firstEmployer, firstSacrifice, firstFees, real} = forecast(input);
+  points = series;
+  byId('headline').textContent = 'Projected balance at age ' + end.age;
+  byId('projected').textContent = format(end.balance);
+  byId('real').textContent = format(real) + ' in today’s dollars';
+  byId('employerOut').textContent = format(firstEmployer);
+  byId('sacrificeOut').textContent = format(firstSacrifice);
+  byId('netOut').textContent = format((firstEmployer + firstSacrifice) * .85);
+  const firstYearBeforeFees = input.balance * (1 + input.growth / 100) + (firstEmployer + firstSacrifice) * .85;
+  byId('autoFees').value = format(Math.min(firstYearBeforeFees, accountFees({...input, fees: 0}, firstYearBeforeFees)));
+  byId('feesOut').textContent = format(firstFees);
+  byId('extraOut').textContent = format(end.balance - end.baseline);
+  byId('chart').setAttribute('aria-label', 'Projected super by age, ending at ' + format(end.balance) + ' with your inputs and ' + format(end.baseline) + ' without salary sacrifice. Values are in the year-by-year table.');
+  byId('rows').replaceChildren(...series.map(row => {
+    const tr = document.createElement('tr');
+    for (const value of [row.age, format(row.balance), format(row.baseline)]) tr.insertCell().textContent = value;
+    return tr;
+  }));
+  draw();
+}
+
+const saved = byId('saved');
+const forecastName = byId('forecastName');
+const saveStatus = byId('saveStatus');
+const storageKey = 'super-forecast-scenarios-v1';
+let loadedId = '';
+
+function readForecasts() {
+  return JSON.parse(localStorage.getItem(storageKey) || '[]');
+}
+
+function showForecasts() {
+  const items = readForecasts();
+  saved.replaceChildren(new Option('Choose a saved forecast', ''),
+    ...items.map(item => new Option(item.name, item.id)));
+  saved.value = loadedId;
+  byId('overwriteForecast').disabled = !loadedId;
+}
+
+function saveForecast(overwrite) {
+  if (!byId('error').hidden) {
+    saveStatus.textContent = 'Correct the forecast inputs before saving.';
+    return;
+  }
+  const name = forecastName.value.trim();
+  if (!name) {
+    saveStatus.textContent = 'Enter a name for this forecast.';
+    forecastName.focus();
+    return;
+  }
+  try {
+    const items = readForecasts();
+    const id = overwrite ? loadedId : (globalThis.crypto?.randomUUID?.() ?? Date.now() + '-' + Math.random().toString(36).slice(2));
+    if (overwrite && !items.some(item => item.id === id)) throw new Error('Missing forecast');
+    const values = Object.fromEntries(new FormData(form));
+    localStorage.setItem(storageKey, JSON.stringify([
+      ...items.filter(item => item.id !== id), {id, name, values},
+    ]));
+    loadedId = id;
+    showForecasts();
+    saveStatus.textContent = 'Saved “' + name + '” in this browser.';
+  } catch {
+    saveStatus.textContent = 'Could not save this forecast in this browser.';
+  }
+}
+
+saved.addEventListener('change', () => {
+  try {
+    const item = readForecasts().find(record => record.id === saved.value);
+    loadedId = item?.id ?? '';
+    byId('overwriteForecast').disabled = !loadedId;
+    if (!item) return;
+    form.reset();
+    form.elements.feePlan.value = 'manual';
+    for (const field of form.elements) {
+      if (field.name && Object.hasOwn(item.values, field.name)) field.value = item.values[field.name];
+    }
+    forecastName.value = item.name;
+    update();
+    saveStatus.textContent = 'Loaded “' + item.name + '”.';
+  } catch {
+    saveStatus.textContent = 'Could not load the saved forecast.';
+  }
+});
+
+byId('saveForecast').onclick = () => saveForecast(false);
+byId('overwriteForecast').onclick = () => saveForecast(true);
+byId('newForecast').onclick = () => {
+  form.reset();
+  form.elements.feePlan.value = 'manual';
+  forecastName.value = '';
+  saved.value = '';
+  loadedId = '';
+  byId('overwriteForecast').disabled = true;
+  saveStatus.textContent = 'New forecast ready. Enter your figures and save it under a name.';
+  update();
+  form.elements.balance.focus();
+};
+try { showForecasts(); }
+catch { saveStatus.textContent = 'Saved forecasts are unavailable in this browser.'; }
+
+form.addEventListener('submit', event => event.preventDefault());
+form.addEventListener('input', update);
+new ResizeObserver(draw).observe(byId('chart'));
+update();
+</script></body></html>
